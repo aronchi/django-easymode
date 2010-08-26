@@ -170,6 +170,13 @@ class ForeignKeyAwareModelAdmin(AdminBase, _CanFindParentLink):
             form.title = child._meta.verbose_name_plural            
             form.addurl = "%s?%s=%s" % (strip_language_code(url), field_name, object_id)
             
+            # Find url for sorting
+            url_pattern = '%s:%s_%s_changelist' % url_descriptor
+            url = urlresolvers.reverse(url_pattern)
+                
+            #add properties to the formset            
+            form.changelisturl = "%s?%s=%s" % (strip_language_code(url), field_name, object_id)
+            
             extra_formsets.append( form )            
 
         return extra_formsets
