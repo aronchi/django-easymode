@@ -53,8 +53,10 @@ def get_localized_property(context, field=None, language=None):
             translation.get_language()[:2],
             settings.LANGUAGE_CODE, 
         ]
-        
-    predicate = lambda x: getattr(context, get_real_fieldname(field, x), None)
+    
+    def predicate(x):
+        value = getattr(context, get_real_fieldname(field, x), None)
+        return value if valid_for_gettext(value) else None
 
     return first_match(predicate, attrs)
 
@@ -157,10 +159,14 @@ class DefaultFieldDescriptor(property):
             return vo.stored_value
         else:
             # we can not use the msgid for gettext lookups, so there is no
-            # point in trying. Also if we are sure we don't have any old
-            # translations in the catalog, we do not need to return a
-            # standin either
-            return vo.msgid
+            # point in trying. Check for fallback languages in database.
+            vo.fallback = get_localized_property(obj, self.name)
+            
+            if not valid_for_gettext(vo.fallback):
+                # Also if we are sure we don't have any old
+                # translations in the catalog or something for the fallback
+                # languages in the database, we do not need to return a standin either
+                return vo.msgid
         
         # we got here so we've got a valid messageid. Now collect data from the catalog(s)
         
@@ -171,7 +177,7 @@ class DefaultFieldDescriptor(property):
                 # first check if the database has the localized data in
                 # any of the fallback languages.
                 vo.fallback = get_localized_property(obj, self.name)
-
+                
                 # if the fallback is the same as the msgid, go and look in the catalog
                 if vo.fallback == vo.msgid:
                     # there might be a translation in any
@@ -182,6 +188,10 @@ class DefaultFieldDescriptor(property):
                         if self.to_python(msg) != vo.msgid:
                             vo.fallback = self.to_python(msg)
                             break
+                elif vo.fallback:
+                    # if a valid fallback is found, then, since the msg is equal
+                    # to the msgid, the fallback is the winner.
+                    vo.msg = vo.fallback
 
         # if we came here we collected data from the catalog and we should return
         # a standin. A standin is the return value, with some extra properties.

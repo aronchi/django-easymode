@@ -1,4 +1,3 @@
-from django import forms
 from django.forms.models import ModelFormMetaclass
 from django.forms.util import ErrorList, ValidationError
 from django.utils.datastructures import SortedDict
@@ -8,7 +7,10 @@ from easymode.i18n.admin.widgets import WidgetWrapper
 from easymode.utils.languagecode import get_real_fieldname
 
 
-class LocalisedForm(forms.ModelForm):
+__all__ = ('make_localised_form',)
+
+
+class LocalisedForm(object):
     """
     This form will show the DefaultFieldDescriptor as a field.
     The DefaultFieldDescriptor is added for models that are internationalised
@@ -126,31 +128,37 @@ class LocalisedForm(forms.ModelForm):
                 
         return bad_fields, form_errors
 
-def make_localised_form(model, exclude=None):
+def make_localised_form(model, form, exclude=None):
     """
     This is a factory function that creates a form for a model with internationalised 
     field. The model should be decorated with the L10N decorater.
     """
     
-    newfields = {}
-    js_media = set()
+    newfields = {}  
     
     for localized_field in model.localized_fields:
-        # use the original formfield for all DefaultFieldDescriptors
+        # get the descriptor, which contains the form field
         default_field_descriptor = getattr(model, localized_field)
         
-        # modify formfield somewhat
-        form_field = default_field_descriptor.form_field
+        # See if we've got overridden fields in a custom form.
+        if hasattr(form, 'declared_fields'):
+            form_field = form.declared_fields.get(
+                localized_field, default_field_descriptor.form_field)
+        else:
+            form_field = default_field_descriptor.form_field
+         
+        # wrap the widget to show the origin of the value;
+        # either database, catalog or fallback.
         if type(form_field.widget) is not WidgetWrapper:
             form_field.widget = WidgetWrapper(form_field.widget)
-        
+         
         newfields[localized_field] = form_field
-        #collect js media definitions
-        if hasattr(form_field.widget, 'media'):
-            js_media.update(form_field.widget.media._js)
+ 
+    if hasattr(form, 'Meta'):
+         setattr(form.Meta, 'model', model)
+    else:
+         newfields['Meta'] = type('Meta', tuple(), {'model':model})
     
-    newfields['Media'] = type('Media', tuple(), {'js':js_media})
-    newfields['Meta'] = type('Meta', tuple(), {'model':model})
     newfields['localized_fields'] = model.localized_fields
-    
-    return ModelFormMetaclass(model.__name__, (LocalisedForm, ), newfields)
+
+    return ModelFormMetaclass(model.__name__, (LocalisedForm, form), newfields)

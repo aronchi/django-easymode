@@ -1,27 +1,20 @@
 """
 functionality for finding inverse foreign key relations in model classes
 """
-import inspect
-
 from django.contrib.contenttypes.generic import ReverseGenericRelatedObjectsDescriptor
-from django.db.models.fields.related import ForeignRelatedObjectsDescriptor, SingleRelatedObjectDescriptor
 from django.db.models.base import ModelBase
+from django.db.models.fields.related import ForeignRelatedObjectsDescriptor, SingleRelatedObjectDescriptor
 
 from easymode.i18n.meta import DefaultFieldDescriptor
 
-SUBFIELDBASE_ERROR = """
+
+INTROSPECTION_ERROR = """
 %s
 
 Easymode caught an AttributeError while trying
-to inspect %s looking for %s. This is probably caused
-by SubFieldBase, see http://code.djangoproject.com/ticket/12568.
-Easymode will patch SubFieldBase for you, you just have to make sure
-not to reference it before easymode is imported. This
-means you can not load any apps that use SubFieldBase before
-you load easymode.
+to inspect %s looking for %s.
 
-Also some built in django fields will give you the same error, including
-ImageField and FileField. Try something like django-filebrowser instead.
+Please report to easymode@librelist.com.
 """
 
 def _get_members_of_type(obj, member_type):
@@ -32,23 +25,23 @@ def _get_members_of_type(obj, member_type):
     :param member_type: The type of the menber we are trying to find.
     :rtype: A :class:`list` of ``member_type`` found in ``obj``
     """
-    try:
-        def filter_member_type(member):
+    
+    if not issubclass(type(obj), ModelBase):
+        obj = obj.__class__
+        
+    key_hash = []
+    for key in dir(obj):
+        try:
+            attr = getattr(obj, key)
+        except AttributeError as e:
             try:
-                return type(member) is member_type
-            except AttributeError:
-                return False
-                
-        # if the type of obj is the metaclass for all models, just search in the object
-        # because it is not a model instance but a type
-        if type(obj) is ModelBase:
-            key_hash = inspect.getmembers(obj, filter_member_type)
-        else:
-            key_hash = inspect.getmembers(obj.__class__, filter_member_type)
-            
-    except AttributeError as e:
-        raise AttributeError(SUBFIELDBASE_ERROR % (e, obj, member_type))
+                attr = obj.__dict__[key]
+            except KeyError:
+                raise AttributeError(INTROSPECTION_ERROR % (e, obj, member_type))
 
+        if type(attr) is member_type:
+            key_hash.append((key, attr))
+    
     return key_hash
 
 def get_foreign_key_desciptors(obj):

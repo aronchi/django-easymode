@@ -13,6 +13,8 @@ ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
 )
 
+AUTO_CATALOG = True
+
 MANAGERS = ADMINS
 
 DATABASE_ENGINE = 'sqlite3'           # 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
@@ -118,6 +120,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.sites',
     'easymode',
+    # 'easymode.tests',
     'easymode.easypublisher',
     'django.contrib.admin',
     'reversion',

@@ -4,8 +4,7 @@ from django.utils.text import capfirst
 __all__ = ('standin_for',)
 
 _defined_standins = dict()
-
-
+    
 def standin_for(obj, **attrs):
     """
     Returns an object that can be used as a standin for the original object.
@@ -27,7 +26,18 @@ def standin_for(obj, **attrs):
     >>> isinstance(b, unicode)
     True
     >>> type(b)
-    <class 'easymode.utils.standin.unicodeOriginAndPackageStandIn'>
+    <class 'easymode.utils.standin.unicodeStandInWithOriginAndPackageAttributes'>
+    >>> import pickle
+    >>> b_pickle = pickle.dumps(b, pickle.HIGHEST_PROTOCOL)
+    >>> c = pickle.loads(b_pickle)
+    >>> b == c
+    True
+    >>> c
+    u'I am E.T.'
+    >>> c.origin
+    'outerspace'
+    >>> c.package
+    'easymode.utils.standin'
     
     Some types are not supported by standin_for. This is because these types are often used in statements like::
         
@@ -70,15 +80,22 @@ def standin_for(obj, **attrs):
     attr_names  = attrs.keys()
     attr_names.sort()
 
-    # create a readable class name eg. unicodeAndTitleAndDescription
+    # Contruct __reduce__ method, so the resulting class can be pickled
+    attrs_org = attrs.copy() # Create a copy to be used for the recude method
+    def __reduce__(self, ignore=None):
+        return (_standin_with_dict_for, (obj, attrs_org))
+    attrs['__reduce__'] = __reduce__
+    attrs['__reduce_ex__']= __reduce__
+
+    # create a readable class name eg. unicodeStandinWithTitleAndDescriptionAttributes
     additions = 'And'.join(map(capfirst, attr_names))
-    id = "%s%s" % (obj_class.__name__, additions.encode('ascii', 'ignore'))
+    id = "%sStandInWith%sAttributes" % (obj_class.__name__, additions.encode('ascii', 'ignore'))
     
     # if we allready know this type don't create it again.
     cached_type = _defined_standins.get(id, None)
     if not cached_type:
         cls_attrs = dict([(attr_name, None) for attr_name in attr_names])
-        cached_type = type("%sStandIn" % id, (obj_class,), cls_attrs)
+        cached_type = type(id, (obj_class,), cls_attrs)
         _defined_standins[id] = cached_type
     
     # create new object based on original and copy all properties
@@ -90,7 +107,7 @@ def standin_for(obj, **attrs):
             stand_in.__dict__.update(obj.__dict__)
         except (AttributeError, TypeError):
             stand_in = obj
-    
+
     # add extra attrs
     try:
         for (key, value) in attrs.iteritems():
@@ -100,3 +117,6 @@ def standin_for(obj, **attrs):
         return obj
     
     return stand_in
+    
+def _standin_with_dict_for(obj, attrs):
+    return standin_for(obj, **attrs)

@@ -45,7 +45,11 @@ class Testi18n(TestCase):
 
     fixtures = ['auth-user', 'auth-group']
     
-    def setUp(self):        
+    def setUp(self):
+        self.settingsManager.set(
+            MSGID_LANUAGE='en',
+            FALLBACK_LANGUAGES={'de': ['en-us']}
+        )
         gc.collect()
         translation.activate(settings.LANGUAGE_CODE)
         
@@ -59,7 +63,7 @@ class Testi18n(TestCase):
             f.subsubmodels.create(subsubcharfield="Hoi ik ben de third level sub node")
             s.subsubmodels.create(subsubcharfield="Hoi ik ben de third level sub node")
             s.subsubmodels.create(subsubcharfield="Hoi ik ben de third level sub node")        
-            t.save()            
+            t.save()          
         except OSError as e:
             if e.errno == 24:
                 print "hai er zit een bug in de mutex"
@@ -239,6 +243,44 @@ class Testi18n(TestCase):
         assert(not (i.title == u'Ik ben een zwerver'))
         assert(i.title == u'Ik ben een konijntje')
         
+    def test_fallback_translation(self):
+        """The fallback from the database should win from the gettext fallback"""
+        translation.activate(settings.LANGUAGE_CODE)
+        value = 'Hoi Ik ben de root node'
+        t = models.TestModel.objects.get(**{'charfield_en': value})
+
+        # test gettext fallback
+        translation.activate('de')
+        self.assertEqual(t.charfield, 'Hoi Ik ben de root node')
+
+        # change the translation in the fallback language of 'de'
+        translation.activate('en-us')
+        t.charfield = 'Hoi I am An american'
+        t.save()
+        self.assertEqual(t.charfield, 'Hoi I am An american')      
+        
+        # test database fallback
+        translation.activate('de')
+        self.assertEqual(t.charfield, 'Hoi I am An american')
+
+
+    def test_translation_nomsgid(self):
+        """
+        When the msgid is None or empty, the value from the fallback language
+        should be used.
+        """
+        
+        # Extra setup
+        translation.activate('en-us')
+        i = models.TestModel(charfield='Woot, not failed!')
+        i.save()
+        self.assertTrue(i.charfield == getattr(i, 'charfield_en-us') == 'Woot, not failed!')
+        translation.activate('de')
+
+        # Test
+        self.assertEqual(i.charfield, 'Woot, not failed!')
+
+
     def test_translated_fields_handle_correctly_under_to_xml(self):
         """A field that is translated should show the correct value when converted to xml"""
 

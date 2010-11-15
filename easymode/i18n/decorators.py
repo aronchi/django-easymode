@@ -7,6 +7,8 @@ from easymode import i18n
 from easymode.i18n import meta
 
 
+__all__ = ('I18n',)
+
 class I18n(object):
     """
     Internationalise a model class.
@@ -31,7 +33,7 @@ class I18n(object):
         """Executes the decorator on the cls."""
         model_dir = os.path.dirname(sys.modules[cls.__module__].__file__) + getattr(settings, 'LOCALE_POSTFIX', '')
         cls = meta.localize_fields(cls, self.localized_fields)
-        if getattr(settings, 'AUTO_CATALOG', True):
+        if getattr(settings, 'AUTO_CATALOG', False):
             i18n.register(cls, getattr(settings, 'LOCALE_DIR', None) or model_dir )
         
         # add permission for editing the untranslated fields in this model

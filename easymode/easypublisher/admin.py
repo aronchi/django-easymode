@@ -25,6 +25,8 @@ from easymode.easypublisher.models import EasyPublisherMetaData, EasyPublisherMo
 from easymode.tree.admin.relation import ForeignKeyAwareModelAdmin, InvisibleModelAdmin
 from easymode.utils import first_match
 
+__all__ = ('EasyPublisher', 'EasyPublisherInvisibleModelAdmin', 'EasyPublisherFKAModelAdmin')
+
 def _eq(self, obj):
     "Helper to have proper equality for models"
     field_names = map(lambda x: x.name, self._meta.fields)
@@ -42,7 +44,11 @@ def _eq(self, obj):
     return True
 
 class EasyPublisher(VersionAdmin):
-    """docstring for EasyPublisher"""
+    """
+    An admin class that adds approval functionality to the django admin.
+    
+    Drafts will be saved as revisions using reversion.
+    """
     
     object_history_template = "easymode/easypublisher/object_history.html"
     revision_form_template = "easymode/easypublisher/publish_form.html"
@@ -113,7 +119,10 @@ class EasyPublisher(VersionAdmin):
         """
         
         obj = get_object_or_404(self.model, pk=object_id)
-        version = get_object_or_404(Version, revision=revision_id, object_id=force_unicode(obj.pk))
+        version = get_object_or_404(Version,
+            revision=revision_id,
+            object_id=force_unicode(obj.pk),
+            content_type=ContentType.objects.get_for_model(obj))
         
         if not version.revision.easypublishermetadata_set.filter(language=request.LANGUAGE_CODE):
             request.user.message_set.create(message=_("There is no draft available for language %s") % request.LANGUAGE_CODE)
@@ -226,6 +235,13 @@ class EasyPublisher(VersionAdmin):
         for metadata in version.revision.easypublishermetadata_set.all():
             if request.user.has_perm("easypublisher.can_approve_for_publication"):                
                 metadata.status = 'published'
+                # save all other drafts for this object as declined, because we
+                # chose to save a different one
+                for other in EasyPublisherMetaData.objects.filter(
+                    revision__version__object_id=version.object_id, 
+                    revision__version__content_type=version.content_type):
+                    other.status = 'declined'
+                    other.save()
             else:
                 metadata.status = 'updated'
             metadata.save()
@@ -353,7 +369,13 @@ class EasyPublisher(VersionAdmin):
                                          for related_version in revision_versions
                                          if ContentType.objects.get_for_id(related_version.content_type_id).model_class() == FormSet.model
                                          and unicode(related_version.field_dict[fk_name]) == unicode(object_id)]
-
+                
+                # all items that do not have their id filled in must stay.
+                # if they do in fact have an id, we only want the last one,
+                # no duplicates.
+                related_versions = [(key, value) for (key, value) in related_versions if key == 'None'] + \
+                    dict([(key, value) for (key, value) in related_versions if key != 'None']).items()
+                
                 initial = []
                 for related_obj in formset.queryset:
                     related_versions_dict = dict(related_versions)
@@ -373,7 +395,10 @@ class EasyPublisher(VersionAdmin):
                         # deleted the id.
                         pass
                     
-                    initial.append(initial_row)
+                    # we didn't convert related_versions to a dict so there can be
+                    # duplicate keys in the thingy
+                    if not initial_row in initial:
+                        initial.append(initial_row)
                 
                 # end of non copy pasted piece
                 
@@ -494,7 +519,11 @@ def _add_invisible_model_admin_behaviour(method):
     return altered_view
 
 class EasyPublisherInvisibleModelAdmin(EasyPublisher, InvisibleModelAdmin):
-    """fixes the collision between EasyPublisher and InvisibleModelAdmin"""
+    """
+    fixes the collision between EasyPublisher and InvisibleModelAdmin
+    
+    see :mod:`easymode.tree.admin.relation`
+    """
         
     def get_model_perms(self, request):
         perms = super(EasyPublisherInvisibleModelAdmin, self).get_model_perms(request)

@@ -8,14 +8,6 @@ __all__ = ('XsltError', 'transform', 'prepare_string_param', 'response')
 class XsltError(Exception):
     """The xslt transformation resulted in an error"""
     pass
-    
-class MessageHandler:
-    def __init__(self):
-        self.content = ''
-    def write(self, msg):
-        self.content = self.content + msg
-    def getContent(self):
-        return self.content
 
 
 def _transform_libxslt(xml, xslt, params=None):
@@ -24,7 +16,6 @@ def _transform_libxslt(xml, xslt, params=None):
 
     - `lxml <http://codespeak.net/lxml/>`_
     - `libxml <http://xmlsoft.org/python.html>`_
-    - `libxsltmod <http://www.rexx.com/~dkuhlman/libxsltmod.html>`_
 
     :param xml: The xml to be transformed.
     :param xslt: The xslt to be used when transforming the ``xml``.
@@ -79,14 +70,14 @@ def _transform_lxml(xml, xslt_path, params=None):
 
 # determine which xslt engine to use,
 try:
+    from lxml import etree
+
+    transform = _transform_lxml
+except:
     import libxslt
     import libxml2
 
     transform = _transform_libxslt
-except:
-    from lxml import etree
-
-    transform = _transform_lxml
 
 
 def prepare_string_param(string):

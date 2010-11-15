@@ -12,12 +12,12 @@ standard translation features to translate all the database content.
 Automatic catalog management
 ----------------------------
 
-If the :ref:`master_site` directive is set to True, every time a model decorated
-with :class:`~easymode.i18n.decorators.I18n` is saved, easymode will add an 
-entry to the corresponding gettext catalog. (for all the options related to the 
-location of the catalogs please refer to :doc:`/settings`). Additional control 
-on what models should auto update the catalog is offered by :ref:`auto_catalog`.
-
+If the :ref:`master_site` and :ref:`auto_catalog` directive are set to True,
+every time a model decorated with :class:`~easymode.i18n.decorators.I18n` is
+saved, easymode wil add an entry to the corresponding gettext catalog [#f0]_.
+(for all the options related to the location of the catalogs please refer to
+:doc:`/settings`). The default for :ref:`auto_catalog` is ``False``, the default
+for :ref:`master_site` is also ``False``.
 
 For each language in your ``LANGUAGES`` directive, a catalog will be created.
 This way you can translate all the content using something like 
@@ -148,7 +148,7 @@ Example::
 What you'll notice is that ``m.bar`` is allready available in the language 'yx'
 even though we did't specify it's value yet. This is because the normal behaviour
 of gettext is to return the ``msgid`` if the ``msgstr`` is not yet available. 
-This is because the value for ``m.bar`` in langugae 'yx' was resolved as follows:
+This is because the value for ``m.bar`` in language 'yx' was resolved as follows:
 
 * see if the database value bar_yx is not null, if so return bar_yx
 * see if the ``msgstr`` for 'hello' (The value of ``m.bar`` in the 
@@ -178,6 +178,11 @@ got written to the database. Because the database get's precedence over the
 gettext catalog, the new translation would never show up.
 
 This inconvenience can be resolved using the :ref:`easy_reset_language` command
+
+.. [#f0] It is possible to have more finegrained control over which models
+    should be automatically added to the catalog by settings :ref:`auto_catalog` to
+    ``False`` and using :func:`easymode.i18n.register` to register individual models.
+    More info in the :ref:`auto_catalog` docs.
 
 .. [#f1]  Obviously, other gettext
     catalogs, generated from static content, that are not managed by easymode are unaffected.

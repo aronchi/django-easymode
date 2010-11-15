@@ -8,30 +8,30 @@ it using xslt templates, which easymode integrates.
 
 For more info, look at :ref:`solipsism`
 
-Table of contents
-=================
+Manual
+======
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
    
+    changes
     i18n/index
     i18n/translation
     xslt/index
     tree/index
-    easypublisher
+    easypublisher/index
     settings
     commands
     templatetags
     Middlewares <middleware.rst>
     xslt/helpers
-    changes
 
 The best way to learn how easymode works, is to read the above topics in sequence
 and then look at the :ref:`example_app`. If you have questions please send them
 to the mailing list at easymode@librelist.com.
 
-Getting easymode
-================
+Installation
+============
 
 You can download easymode from:
 
@@ -52,6 +52,13 @@ Note the version number in the top left corner and use:
 Which, if the version was v0.1.0 would become http://github.com/LUKKIEN/django-easymode/tarball/v0.1.0.
 
 .. _example_app:
+
+If you want to use easymode's xslt fascilities, make sure to install either
+`lxml <http://codespeak.net/lxml/>`_ or 
+`libxslt <http://xmlsoft.org/XSLT/python.html>`_.
+
+If you want to make use of :ref:`easypublisher`, make sure you've got
+`django-reversion <http://code.google.com/p/django-reversion/>`_ installed.
 
 Example
 =======
@@ -90,15 +97,27 @@ Most these features are not supported because the ammount of work to have them
 was greater than the benefit of having them. However, it could also be that I
 just `didn't need it yet <http://c2.com/xp/YouArentGonnaNeedIt.html>`_.
 
+Actionscript bindings
+=====================
+
+If you are developing flex or flash sites with easymode, you are invited to try
+out the new actionscript bindings at
+
+http://github.com/specialunderwear/robotlegs-dungdungdung
+
+These integrate object creation and databinding for easymode's xml output.
+
 Api docs
 ========
 
 .. toctree::
     :maxdepth: 2
 
+    api
     i18n/api
     tree/api
     xslt/api
+    easypublisher/api
     utils/api
     fields
     debug    

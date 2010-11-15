@@ -15,7 +15,7 @@ documentation at http://packages.python.org/django-easymode/
 
 release notes at http://packages.python.org/django-easymode/changes.html"""
 
-version = '0.10.5'
+version = '0.14.0'
 packages = []
 data_files = []
 
@@ -53,6 +53,7 @@ setup(name='django-easymode',
     version=version,
     description='Quickly build backends for flash/flex websites with django',
     author='L. van de Kerkhof',
+    author_email='easymode@librelist.com',
     maintainer='L. van de Kerkhof',
     maintainer_email='easymode@librelist.com',
     keywords='adobe flex flash xml xslt',
